@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Luhn Algorithm Simulation</title>
+<style>
+:root{--bg:#f3f6fa;--fg:#14213d;--muted:#5b6678;--card:#fff;--line:#d5dce8;--dbl:#fff1c9;--dblb:#e0a100;--ok:#0a7f5a;--okbg:#dff4ec;--bad:#b3261e;--badbg:#fbe6e4;--acc:#14213d;--accfg:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1626;--fg:#e8edf7;--muted:#9aa6bb;--card:#16213a;--line:#2a3856;--dbl:#3b3012;--dblb:#e0a100;--ok:#4fd1a1;--okbg:#10382d;--bad:#ff8a80;--badbg:#401c1a;--acc:#e8edf7;--accfg:#0e1626}}
+:root[data-theme="dark"]{--bg:#0e1626;--fg:#e8edf7;--muted:#9aa6bb;--card:#16213a;--line:#2a3856;--dbl:#3b3012;--dblb:#e0a100;--ok:#4fd1a1;--okbg:#10382d;--bad:#ff8a80;--badbg:#401c1a;--acc:#e8edf7;--accfg:#0e1626}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:720px;margin:0 auto;padding:24px 16px 48px}
+h1{font:700 clamp(1.6rem,5vw,2.2rem)/1.15 "Iowan Old Style",Georgia,"Times New Roman",serif;margin:0 0 8px}
+p{margin:0 0 12px}.muted{color:var(--muted);font-size:.92rem}
+.modes{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:12px 0}
+.modes button{border:0;background:var(--card);color:var(--fg);padding:9px 14px;font:inherit;cursor:pointer}
+.modes button[aria-pressed="true"]{background:var(--acc);color:var(--accfg)}
+label{display:block;font-weight:600;margin-bottom:6px}
+input{width:100%;box-sizing:border-box;font:600 1.3rem/1.2 system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:.06em;padding:12px 14px;border:2px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--dblb);outline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+.chips button{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:999px;padding:6px 12px;font:inherit;font-size:.88rem;cursor:pointer}
+.tape{display:flex;flex-wrap:wrap;gap:6px;margin:20px 0 14px}
+.cell{width:52px;border:1px solid var(--line);border-radius:6px;background:var(--card);text-align:center;padding:6px 2px 8px;transition:background .15s}
+.cell.dbl{background:var(--dbl);border-color:var(--dblb);transform:translateY(-6px)}
+.cell .d{display:block;font:700 1.35rem/1.2 system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.cell .op{display:block;font-size:.68rem;color:var(--muted);min-height:1.9em;line-height:1.25}
+.cell .v{display:block;font:700 1.05rem/1.2 system-ui,sans-serif;border-top:1px solid var(--line);margin-top:4px;padding-top:4px;font-variant-numeric:tabular-nums}
+.key{display:flex;gap:14px;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin-bottom:12px}
+.key i{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid var(--dblb);background:var(--dbl);vertical-align:-1px;margin-right:5px}
+.result{border-radius:10px;padding:14px 16px;border:1px solid var(--line);background:var(--card)}
+.result.ok{background:var(--okbg);border-color:var(--ok)}.result.bad{background:var(--badbg);border-color:var(--bad)}
+.result strong{display:block;font-size:1.15rem;margin-bottom:4px}.ok strong{color:var(--ok)}.bad strong{color:var(--bad)}
+.sum{font-variant-numeric:tabular-nums;word-break:break-word}
+.err{color:var(--bad);font-weight:600}
+footer{margin-top:28px}
+@media (prefers-reduced-motion:reduce){.cell{transition:none}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<h1>Luhn Algorithm Simulation</h1>
+<p>Type a number and see which digits are doubled, what the total is, and why the number is valid or not.</p>
+
+<div class="modes" role="group" aria-label="Mode">
+<button type="button" id="m-validate" aria-pressed="true">Validate a number</button>
+<button type="button" id="m-generate" aria-pressed="false">Generate a check digit</button>
+</div>
+
+<label for="num" id="lbl">Number to check</label>
+<input id="num" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="30" value="79927398713" aria-describedby="out">
+
+<div class="chips" id="chips"></div>
+
+<div class="tape" id="tape" aria-label="Calculation per digit"></div>
+<div class="key"><span><i></i>digit is doubled (then 9 is subtracted if the result is over 9)</span><span>Counted from the right</span></div>
+<div id="out" class="result" aria-live="polite"></div>
+
+<footer class="muted">
+<p>Do not enter a real card number. Everything is calculated in your browser and nothing is sent anywhere.</p>
+<p>Try <b>42093</b> and then <b>42903</b>: two digits are swapped (<b>09</b> becomes <b>90</b>), but both remain valid. That is the Luhn gap discussed in the article.</p>
+</footer>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let mode = "validate";
+const EX = {
+  validate: [["79927398713", "Valid example"], ["79927398714", "One digit changed"], ["42093", "Valid"], ["42903", "09 → 90, still valid"]],
+  generate: [["7992739871", "Classic payload"], ["4242424242424242".slice(0, 15), "15 digits"], ["42093".slice(0, 4), "4 digits"]],
+};
+
+function calc(digits, gen) {
+  const arr = gen ? digits + "0" : digits;
+  const cells = [];
+  let total = 0;
+  for (let i = arr.length - 1, k = 0; i >= 0; i--, k++) {
+    const d = +arr[i];
+    const dbl = k % 2 === 1;
+    const raw = d * 2;
+    const v = dbl ? (raw > 9 ? raw - 9 : raw) : d;
+    total += v;
+    cells.unshift({ d: arr[i], dbl, raw, v, ph: gen && k === 0 });
+  }
+  return { cells, total };
+}
+
+function setMode(m) {
+  mode = m;
+  $("m-validate").setAttribute("aria-pressed", m === "validate");
+  $("m-generate").setAttribute("aria-pressed", m === "generate");
+  $("lbl").textContent = m === "validate" ? "Number to check" : "Number without a check digit";
+  const first = EX[m][0][0];
+  $("num").value = first;
+  chips();
+  render();
+}
+
+function chips() {
+  $("chips").innerHTML = "";
+  EX[mode].forEach(([val, label]) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = val + " · " + label;
+    b.onclick = () => { $("num").value = val; render(); };
+    $("chips").appendChild(b);
+  });
+}
+
+function render() {
+  const raw = $("num").value;
+  const digits = raw.replace(/[\s-]/g, "");
+  const out = $("out"), tape = $("tape");
+  out.className = "result";
+  tape.innerHTML = "";
+  if (!digits) { out.innerHTML = "Type a number to start."; return; }
+  if (!/^\d+$/.test(digits)) { out.innerHTML = '<span class="err">Only digits, spaces, and hyphens are accepted.</span>'; return; }
+  const gen = mode === "generate";
+  const { cells, total } = calc(digits, gen);
+  tape.innerHTML = cells.map((c) => {
+    const op = c.ph ? "check digit" : c.dbl ? "×2 = " + c.raw + (c.raw > 9 ? " → " + c.v : "") : "×1";
+    return `<div class="cell${c.dbl ? " dbl" : ""}"><span class="d">${c.ph ? "?" : c.d}</span><span class="op">${op}</span><span class="v">${c.ph ? "–" : c.v}</span></div>`;
+  }).join("");
+  const parts = cells.filter((c) => !c.ph).map((c) => c.v).join(" + ");
+  const r = total % 10;
+  if (gen) {
+    const cd = (10 - r) % 10;
+    out.classList.add("ok");
+    out.innerHTML = `<strong>Check digit = ${cd}</strong><span class="sum">Sum ${parts} = ${total}. (10 − (${total} mod 10)) mod 10 = ${cd}.<br>Full number: <b>${digits}${cd}</b></span>`;
+  } else if (r === 0) {
+    out.classList.add("ok");
+    out.innerHTML = `<strong>Valid</strong><span class="sum">${parts} = ${total}, divisible by 10.</span>`;
+  } else {
+    out.classList.add("bad");
+    out.innerHTML = `<strong>Not valid</strong><span class="sum">${parts} = ${total}. ${total} mod 10 = ${r}, not 0.</span>`;
+  }
+}
+
+$("num").addEventListener("input", render);
+$("m-validate").onclick = () => setMode("validate");
+$("m-generate").onclick = () => setMode("generate");
+chips();
+render();
+</script>
+</body>
+</html>
